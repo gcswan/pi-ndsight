@@ -20,6 +20,7 @@ import { retain, recall, reflect, health, debug, BASE_URL } from "./client.ts";
 import { ensureServer, dockerStatus, CONTAINER } from "./server.ts";
 import { resolveConfig, isConfigured, providerById } from "./config.ts";
 import { runSetup, type WizardUI } from "./setup.ts";
+import { buildRetention } from "./filter.ts";
 
 const MAX_MEMORY_TOKENS = Number(process.env.HINDSIGHT_RECALL_TOKENS ?? 2048);
 const RECALL_TIMEOUT_MS = Number(process.env.HINDSIGHT_RECALL_TIMEOUT_MS ?? 2500);
@@ -30,20 +31,6 @@ function makeQueue() {
   return (job: () => Promise<void>) => {
     tail = tail.then(job).catch((e) => debug(`retain failed: ${e}`));
   };
-}
-
-/** Pull the plain-text body out of a message's content. */
-function messageText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (Array.isArray(content)) {
-    return content
-      .filter((p): p is { type: string; text: string } =>
-        !!p && typeof p === "object" && (p as any).type === "text" && typeof (p as any).text === "string")
-      .map((p) => p.text)
-      .join("\n")
-      .trim();
-  }
-  return "";
 }
 
 export default function (pi: ExtensionAPI) {
@@ -111,17 +98,15 @@ export default function (pi: ExtensionAPI) {
   });
 
   // Retain the exchange once the agent finishes — fire-and-forget.
+  // buildRetention drops trivial turns (bare commands, acks, clipboard paths)
+  // so they never pollute the memory bank.
   pi.on("agent_end", async (event) => {
     if (!bankId) return;
-    const lines: string[] = [];
-    for (const msg of event.messages ?? []) {
-      const role = (msg as any).role;
-      if (role !== "user" && role !== "assistant") continue; // skip tool-result noise
-      const text = messageText((msg as any).content);
-      if (text) lines.push(`${role}: ${text}`);
+    const transcript = buildRetention((event.messages ?? []) as any[]);
+    if (!transcript) {
+      debug("exchange not worth retaining; skipped");
+      return;
     }
-    const transcript = lines.join("\n");
-    if (!transcript) return;
     enqueue(() => retain(bankId, transcript));
   });
 

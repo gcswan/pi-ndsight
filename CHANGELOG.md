@@ -8,3 +8,10 @@
 - Async (non-blocking) retain, direct fetch client, bounded recall, background
   retain queue.
 - Commands: /pindsight-setup, /pindsight-search, /pindsight-reflect, /pindsight-status.
+
+## 1.1.0
+
+- Default model is now gpt-5-mini (better extraction quality; chat/completions
+  compatible). Wizard shows the default/recommended model.
+- Added a lightweight retention filter that drops trivial turns (bare commands,
+  acknowledgements, clipboard paths, commit-hash-only replies).

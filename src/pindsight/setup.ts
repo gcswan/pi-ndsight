@@ -50,7 +50,11 @@ export async function runSetup(ui: WizardUI): Promise<Config | undefined> {
   // 3. Model.
   const modelDefault =
     current.provider === provider.id && current.model ? current.model : provider.defaultModel;
-  const model = (await ui.input(`Model for ${provider.label}`, modelDefault || "model name")) ?? modelDefault;
+  const hint = modelDefault
+    ? `default: ${modelDefault}${provider.id === "openai" ? ", recommended" : ""}`
+    : "enter a model name";
+  const model =
+    (await ui.input(`Model for ${provider.label} (${hint})`, modelDefault || "model name")) ?? modelDefault;
   if (!model) {
     ui.notify("A model name is required.", "error");
     return undefined;

@@ -51,7 +51,10 @@ API key) is handled by the setup wizard.
 
 - **Recall on every prompt** — relevant memories from past sessions are injected
   as context before the agent runs.
-- **Retain every exchange** — the user/assistant exchange is stored for recall.
+- **Retain every meaningful exchange** — the user/assistant exchange is stored
+  for recall, after a lightweight filter drops trivial turns (bare slash
+  commands, acknowledgements like "ok", lone clipboard paths, commit-hash-only
+  replies) so they never pollute the bank.
 - **Per-project isolation** — bank id derives from the git remote (`owner-repo`)
   or the working directory, so the same repo shares memory across clones/paths.
 - **Auto-start** — brings the `pindsight` container up in the background via the
@@ -91,7 +94,7 @@ which the extension reads as a fallback:
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `HINDSIGHT_API_LLM_PROVIDER` | `openai` | Server LLM provider |
-| `HINDSIGHT_API_LLM_MODEL` | `gpt-5-nano` | Server extraction/recall model |
+| `HINDSIGHT_API_LLM_MODEL` | `gpt-5-mini` | Server extraction/recall model |
 | `HINDSIGHT_API_LLM_API_KEY` | (none) | LLM key |
 | `HINDSIGHT_API_LLM_BASE_URL` | (none) | For local providers (Ollama, LM Studio) |
 | `HINDSIGHT_BANK_PREFIX` | `claude-code--` | Bank namespace. Default **shares banks with hindsight-cc**. Set to `pi--` to separate. |
@@ -108,6 +111,7 @@ which the extension reads as a fallback:
 docker-compose.yml      memory server definition (used by auto-start)
 src/pindsight/
   index.ts    event wiring + commands + streamlined startup
+  filter.ts   retention filter (drops trivial turns)
   setup.ts    first-run / on-demand configuration wizard
   config.ts   provider catalog + config persistence
   client.ts   direct HTTP client (retain / recall / reflect / health)

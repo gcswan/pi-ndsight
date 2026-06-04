@@ -24,7 +24,7 @@ export interface Provider {
 
 /** Providers the Hindsight server understands. */
 export const PROVIDERS: Provider[] = [
-  { id: "openai", label: "OpenAI", defaultModel: "gpt-5-nano", needsKey: true },
+  { id: "openai", label: "OpenAI", defaultModel: "gpt-5-mini", needsKey: true },
   { id: "groq", label: "Groq (fast inference)", defaultModel: "openai/gpt-oss-20b", needsKey: true },
   { id: "anthropic", label: "Anthropic", defaultModel: "claude-sonnet-4-20250514", needsKey: true },
   { id: "gemini", label: "Google Gemini", defaultModel: "gemini-2.0-flash", needsKey: true },
@@ -103,7 +103,7 @@ export function serverEnv(cfg: Config): NodeJS.ProcessEnv {
   return {
     ...process.env,
     HINDSIGHT_API_LLM_PROVIDER: cfg.provider ?? "openai",
-    HINDSIGHT_API_LLM_MODEL: cfg.model ?? "gpt-5-nano",
+    HINDSIGHT_API_LLM_MODEL: cfg.model ?? "gpt-5-mini",
     HINDSIGHT_API_LLM_API_KEY: cfg.apiKey ?? "",
     HINDSIGHT_API_LLM_BASE_URL: cfg.baseUrl ?? "",
     HINDSIGHT_IMAGE: cfg.image ?? "ghcr.io/vectorize-io/hindsight:0.1.16",
