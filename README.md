@@ -93,10 +93,11 @@ which the extension reads as a fallback:
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `HINDSIGHT_API_LLM_PROVIDER` | `openai` | Server LLM provider |
-| `HINDSIGHT_API_LLM_MODEL` | `gpt-5-mini` | Server extraction/recall model |
+| `HINDSIGHT_API_LLM_PROVIDER` | `groq` | Server LLM provider |
+| `HINDSIGHT_API_LLM_MODEL` | `openai/gpt-oss-20b` | Server extraction/recall model |
 | `HINDSIGHT_API_LLM_API_KEY` | (none) | LLM key |
 | `HINDSIGHT_API_LLM_BASE_URL` | (none) | For local providers (Ollama, LM Studio) |
+| `HINDSIGHT_API_LLM_GROQ_SERVICE_TIER` | (none) | Groq free tier: set to `on_demand` if you hit service_tier errors |
 | `HINDSIGHT_BANK_PREFIX` | `claude-code--` | Bank namespace. Default **shares banks with hindsight-cc**. Set to `pi--` to separate. |
 | `HINDSIGHT_BASE_URL` | `http://localhost:8888` | Hindsight server URL |
 | `HINDSIGHT_IMAGE` | `ghcr.io/vectorize-io/hindsight:0.1.16` | Docker image |

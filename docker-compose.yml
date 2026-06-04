@@ -16,10 +16,12 @@ services:
       - "8888:8888"
       - "9999:9999"
     environment:
-      HINDSIGHT_API_LLM_PROVIDER: ${HINDSIGHT_API_LLM_PROVIDER:-openai}
-      HINDSIGHT_API_LLM_MODEL: ${HINDSIGHT_API_LLM_MODEL:-gpt-5-mini}
+      HINDSIGHT_API_LLM_PROVIDER: ${HINDSIGHT_API_LLM_PROVIDER:-groq}
+      HINDSIGHT_API_LLM_MODEL: ${HINDSIGHT_API_LLM_MODEL:-openai/gpt-oss-20b}
       HINDSIGHT_API_LLM_API_KEY: ${HINDSIGHT_API_LLM_API_KEY:-}
       HINDSIGHT_API_LLM_BASE_URL: ${HINDSIGHT_API_LLM_BASE_URL:-}
+      # Groq free tier: set to on_demand if you hit service_tier errors.
+      HINDSIGHT_API_LLM_GROQ_SERVICE_TIER: ${HINDSIGHT_API_LLM_GROQ_SERVICE_TIER:-}
     volumes:
       - ${HINDSIGHT_DATA_DIR:-/tmp/hindsight-data}:/home/hindsight/.pg0
     restart: unless-stopped

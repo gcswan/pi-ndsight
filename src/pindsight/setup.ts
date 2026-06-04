@@ -51,10 +51,11 @@ export async function runSetup(ui: WizardUI): Promise<Config | undefined> {
   const modelDefault =
     current.provider === provider.id && current.model ? current.model : provider.defaultModel;
   const hint = modelDefault
-    ? `default: ${modelDefault}${provider.id === "openai" ? ", recommended" : ""}`
+    ? `default: ${modelDefault}${provider.id === "groq" ? ", recommended" : ""}`
     : "enter a model name";
-  const model =
-    (await ui.input(`Model for ${provider.label} (${hint})`, modelDefault || "model name")) ?? modelDefault;
+  const entered = await ui.input(`Model for ${provider.label} (${hint})`, modelDefault || "model name");
+  // Empty submit (Enter) accepts the default rather than failing.
+  const model = entered && entered.trim() ? entered.trim() : modelDefault;
   if (!model) {
     ui.notify("A model name is required.", "error");
     return undefined;

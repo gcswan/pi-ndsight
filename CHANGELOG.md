@@ -15,3 +15,11 @@
   compatible). Wizard shows the default/recommended model.
 - Added a lightweight retention filter that drops trivial turns (bare commands,
   acknowledgements, clipboard paths, commit-hash-only replies).
+
+## 1.2.0
+
+- Default provider/model is now Groq `openai/gpt-oss-20b` (fast, the proven
+  hindsight-cc default). Groq is the wizard's top/recommended choice.
+- Pass through `HINDSIGHT_API_LLM_GROQ_SERVICE_TIER` for Groq free-tier users.
+- Fix: pressing Enter in the wizard now accepts the default model instead of
+  erroring with "model required".
