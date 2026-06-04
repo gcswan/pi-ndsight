@@ -1,0 +1,28 @@
+{
+  "name": "hindsight-pi",
+  "version": "1.0.0",
+  "description": "Persistent per-project memory for pi, backed by a local Hindsight server",
+  "license": "MIT",
+  "author": "gcswan",
+  "keywords": [
+    "pi-package",
+    "memory",
+    "hindsight",
+    "context",
+    "persistence",
+    "recall"
+  ],
+  "pi": {
+    "extensions": [
+      "./src/hindsight/index.ts"
+    ]
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ]
+}
