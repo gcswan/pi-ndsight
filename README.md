@@ -66,13 +66,9 @@ API key) is handled by the setup wizard.
 
 ## Why it's fast
 
-The hindsight-cc plugin stalled every turn. Three causes, all fixed here:
-
-| Problem (hindsight-cc) | Fix (pi-ndsight) |
-| --- | --- |
-| `Stop` hook blocked until the server finished LLM extraction (synchronous `retain`) | `retain` uses `async:true` — server returns in ~20ms, extracts in the background |
-| A fresh `python3` venv subprocess was spawned per hook | Direct `fetch()` from pi's long-lived Node process; no subprocess, keep-alive connections |
-| Prompt submission blocked on recall with no timeout | Recall is bounded by `HINDSIGHT_RECALL_TIMEOUT_MS`; on timeout the prompt proceeds without memories |
+- `retain` uses `async:true` — server returns in ~20ms, extracts in the background
+- Direct `fetch()` from pi's long-lived Node process; no subprocess, keep-alive connections
+- Recall is bounded by `HINDSIGHT_RECALL_TIMEOUT_MS`; on timeout the prompt proceeds without memories
 
 Retains also run through a background queue, so the turn never waits on the network.
 
