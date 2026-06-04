@@ -16,6 +16,14 @@
 - Added a lightweight retention filter that drops trivial turns (bare commands,
   acknowledgements, clipboard paths, commit-hash-only replies).
 
+## 1.2.1
+
+- Drop the misleading `Container:` line from `/pindsight-status`. It filtered on
+  a container literally named `pindsight` and reported "not running" whenever the
+  server was served by a differently-named container (e.g. `hindsight-cc`), even
+  though `Server: healthy` already reflects reality. Removed the unused probe and
+  `CONTAINER` import from the status command.
+
 ## 1.2.0
 
 - Default provider/model is now Groq `openai/gpt-oss-20b` (fast, the proven

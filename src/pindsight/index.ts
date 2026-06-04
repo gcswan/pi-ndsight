@@ -17,7 +17,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getBankId, getProjectDir } from "./bank.ts";
 import { retain, recall, reflect, health, debug, BASE_URL } from "./client.ts";
-import { ensureServer, dockerStatus, CONTAINER } from "./server.ts";
+import { ensureServer, dockerStatus } from "./server.ts";
 import { resolveConfig, isConfigured, providerById } from "./config.ts";
 import { runSetup, type WizardUI } from "./setup.ts";
 import { buildRetention } from "./filter.ts";
@@ -164,17 +164,6 @@ export default function (pi: ExtensionAPI) {
       const provider = providerById(cfg.provider);
       const ok = await health();
       const docker = await dockerStatus();
-      const container = await import("node:child_process").then(
-        (cp) =>
-          new Promise<string>((resolve) => {
-            cp.execFile(
-              "docker",
-              ["ps", "-f", `name=${CONTAINER}`, "--format", "{{.Status}}"],
-              { timeout: 5000 },
-              (err, stdout) => resolve(err ? "unknown" : stdout.trim() || "not running"),
-            );
-          }),
-      );
       const lines = [
         `Project:   ${getProjectDir(ctx.cwd)}`,
         `Bank:      ${bankId}`,
@@ -182,7 +171,6 @@ export default function (pi: ExtensionAPI) {
         `Provider:  ${provider ? `${provider.label} (${cfg.model})` : "unset"}`,
         `Docker:    ${docker}`,
         `Server:    ${ok ? "healthy" : "unavailable"} (${BASE_URL})`,
-        `Container: ${container}`,
         `Browse:    http://localhost:9999/banks/${bankId}`,
       ];
       pi.sendMessage({ customType: "pindsight-status", content: lines.join("\n"), display: true });
