@@ -1,23 +1,25 @@
 /**
- * hindsight — persistent project memory for pi, backed by the Hindsight server.
+ * pi-ndsight — persistent project memory for pi, backed by a local Hindsight
+ * server. A fast pi port of the hindsight-cc Claude Code plugin.
  *
- * A pi port of the hindsight-cc Claude Code plugin, with the slow parts fixed:
+ * Streamlined startup:
+ *   - First interactive session with no config -> setup wizard (Docker, provider,
+ *     model, API key), then the server auto-starts in the background.
+ *   - Configured sessions just auto-start the server (non-blocking).
+ *   - Re-run anytime with /pindsight-setup.
  *
+ * Slowness fixes vs hindsight-cc:
  *   - Direct fetch() from pi's long-lived process (no python subprocess per turn)
- *   - Retain uses async:true, so the turn is never blocked on LLM extraction
- *   - Retains are fire-and-forget through a background queue
- *   - Recall is bounded by a timeout so a slow server never stalls a prompt
- *
- * Lifecycle mapping (Claude Code hook -> pi event):
- *   SessionStart      -> session_start        (compute bank id, ensure server)
- *   UserPromptSubmit  -> before_agent_start   (recall + inject memories)
- *   Stop              -> agent_end            (retain the exchange, async)
+ *   - retain uses async:true, so a turn is never blocked on LLM extraction
+ *   - retains are fire-and-forget through a background queue
+ *   - recall is bounded by a timeout so a slow server never stalls a prompt
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { getBankId, getProjectDir } from "./bank.ts";
 import { retain, recall, reflect, health, debug, BASE_URL } from "./client.ts";
-import { ensureServer, CONTAINER } from "./server.ts";
-import { execFile } from "node:child_process";
+import { ensureServer, dockerStatus, CONTAINER } from "./server.ts";
+import { resolveConfig, isConfigured, providerById } from "./config.ts";
+import { runSetup, type WizardUI } from "./setup.ts";
 
 const MAX_MEMORY_TOKENS = Number(process.env.HINDSIGHT_RECALL_TOKENS ?? 2048);
 const RECALL_TIMEOUT_MS = Number(process.env.HINDSIGHT_RECALL_TIMEOUT_MS ?? 2500);
@@ -48,13 +50,33 @@ export default function (pi: ExtensionAPI) {
   let bankId = "";
   const enqueue = makeQueue();
 
+  // Kick off the server in the background, surfacing progress in the footer.
+  function startServer(ctx: { ui: { setStatus(k: string, v: string | undefined): void } }) {
+    const cfg = resolveConfig();
+    if (!isConfigured(cfg)) return;
+    void ensureServer(cfg, (msg) => ctx.ui.setStatus("pindsight", msg || undefined)).then((ok) => {
+      if (!ok) debug("server unavailable; memory features will no-op this session");
+    });
+  }
+
   pi.on("session_start", async (_event, ctx) => {
     bankId = getBankId(ctx.cwd);
     debug(`bank: ${bankId}`);
-    // Don't block startup on Docker — bring the server up in the background.
-    void ensureServer().then((ok) => {
-      if (!ok) debug("hindsight server unavailable; memory features will no-op");
-    });
+
+    const cfg = resolveConfig();
+    // First run: walk the user through setup (interactive sessions only).
+    if (!isConfigured(cfg) && ctx.hasUI) {
+      ctx.ui.notify("Welcome to pi-ndsight — let's set up persistent memory.", "info");
+      const saved = await runSetup(ctx.ui as WizardUI);
+      if (!saved) {
+        ctx.ui.notify("Setup skipped. Run /pindsight-setup when ready.", "warning");
+        return;
+      }
+    } else if (!isConfigured(cfg)) {
+      debug("not configured and no UI; set HINDSIGHT_API_LLM_* env or run /pindsight-setup");
+      return;
+    }
+    startServer(ctx);
   });
 
   // Recall relevant memories and inject them before the agent runs.
@@ -73,12 +95,12 @@ export default function (pi: ExtensionAPI) {
       }
       debug(`injecting ${results.length} memories`);
       const block =
-        "<hindsight-memories>\n" +
+        "<pindsight-memories>\n" +
         results.map((r) => r.text).join("\n") +
-        "\n</hindsight-memories>";
+        "\n</pindsight-memories>";
       return {
         message: {
-          customType: "hindsight-memories",
+          customType: "pindsight-memories",
           content: block,
           display: false, // sent to the LLM as context, kept out of the UI
         },
@@ -88,7 +110,7 @@ export default function (pi: ExtensionAPI) {
     }
   });
 
-  // Retain the full exchange once the agent finishes — fire-and-forget.
+  // Retain the exchange once the agent finishes — fire-and-forget.
   pi.on("agent_end", async (event) => {
     if (!bankId) return;
     const lines: string[] = [];
@@ -105,17 +127,25 @@ export default function (pi: ExtensionAPI) {
 
   // ---- Commands -----------------------------------------------------------
 
-  pi.registerCommand("hindsight-search", {
-    description: "Search this project's Hindsight memory bank",
+  pi.registerCommand("pindsight-setup", {
+    description: "Configure pi-ndsight (Docker, provider, model, API key)",
+    handler: async (_args, ctx) => {
+      const saved = await runSetup(ctx.ui as WizardUI);
+      if (saved) startServer(ctx);
+    },
+  });
+
+  pi.registerCommand("pindsight-search", {
+    description: "Search this project's memory bank",
     handler: async (args, ctx) => {
       const query = args.trim();
-      if (!query) return ctx.ui.notify("Usage: /hindsight-search <query>", "warning");
+      if (!query) return ctx.ui.notify("Usage: /pindsight-search <query>", "warning");
       try {
         const results = await recall(bankId, query, { budget: "mid", maxTokens: 4096, timeoutMs: 15_000 });
         if (results.length === 0) return ctx.ui.notify("No relevant memories found.", "info");
         const body = results.map((r, i) => `--- Memory ${i + 1} ---\n${r.text}`).join("\n\n");
         pi.sendMessage({
-          customType: "hindsight-search",
+          customType: "pindsight-search",
           content: `Found ${results.length} memories for "${query}":\n\n${body}`,
           display: true,
         });
@@ -125,43 +155,52 @@ export default function (pi: ExtensionAPI) {
     },
   });
 
-  pi.registerCommand("hindsight-reflect", {
+  pi.registerCommand("pindsight-reflect", {
     description: "Reflect on a decision using past project context",
     handler: async (args, ctx) => {
       const query = args.trim();
-      if (!query) return ctx.ui.notify("Usage: /hindsight-reflect <query>", "warning");
-      ctx.ui.setStatus("hindsight", "reflecting…");
+      if (!query) return ctx.ui.notify("Usage: /pindsight-reflect <query>", "warning");
+      ctx.ui.setStatus("pindsight", "reflecting…");
       try {
         const answer = await reflect(bankId, query, { budget: "mid" });
-        pi.sendMessage({ customType: "hindsight-reflect", content: answer, display: true });
+        pi.sendMessage({ customType: "pindsight-reflect", content: answer, display: true });
       } catch (e) {
         ctx.ui.notify(`Reflect failed: ${e}`, "error");
       } finally {
-        ctx.ui.setStatus("hindsight", "");
+        ctx.ui.setStatus("pindsight", undefined);
       }
     },
   });
 
-  pi.registerCommand("hindsight-status", {
-    description: "Show Hindsight server status and this project's memory bank",
+  pi.registerCommand("pindsight-status", {
+    description: "Show server status and this project's memory bank",
     handler: async (_args, ctx) => {
+      const cfg = resolveConfig();
+      const provider = providerById(cfg.provider);
       const ok = await health();
-      const container = await new Promise<string>((resolve) => {
-        execFile(
-          "docker",
-          ["ps", "-f", `name=${CONTAINER}`, "--format", "{{.Status}}"],
-          { timeout: 5000 },
-          (err, stdout) => resolve(err ? "unknown" : stdout.trim() || "not running"),
-        );
-      });
+      const docker = await dockerStatus();
+      const container = await import("node:child_process").then(
+        (cp) =>
+          new Promise<string>((resolve) => {
+            cp.execFile(
+              "docker",
+              ["ps", "-f", `name=${CONTAINER}`, "--format", "{{.Status}}"],
+              { timeout: 5000 },
+              (err, stdout) => resolve(err ? "unknown" : stdout.trim() || "not running"),
+            );
+          }),
+      );
       const lines = [
         `Project:   ${getProjectDir(ctx.cwd)}`,
         `Bank:      ${bankId}`,
+        `Configured:${isConfigured(cfg) ? " yes" : " no — run /pindsight-setup"}`,
+        `Provider:  ${provider ? `${provider.label} (${cfg.model})` : "unset"}`,
+        `Docker:    ${docker}`,
         `Server:    ${ok ? "healthy" : "unavailable"} (${BASE_URL})`,
         `Container: ${container}`,
         `Browse:    http://localhost:9999/banks/${bankId}`,
       ];
-      pi.sendMessage({ customType: "hindsight-status", content: lines.join("\n"), display: true });
+      pi.sendMessage({ customType: "pindsight-status", content: lines.join("\n"), display: true });
     },
   });
 }

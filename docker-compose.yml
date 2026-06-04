@@ -1,0 +1,25 @@
+# Hindsight memory server for pi-ndsight.
+#
+# The extension starts this automatically via `docker compose up -d`, passing
+# configuration through the environment variables below (resolved from the
+# setup wizard or your shell). You can also run it by hand:
+#
+#   HINDSIGHT_API_LLM_API_KEY=sk-... docker compose up -d
+#
+# Data persists in HINDSIGHT_DATA_DIR (default ~/hindsight-data), so the
+# container can be recreated without losing memories.
+services:
+  pindsight:
+    image: ${HINDSIGHT_IMAGE:-ghcr.io/vectorize-io/hindsight:0.1.16}
+    container_name: pindsight
+    ports:
+      - "8888:8888"
+      - "9999:9999"
+    environment:
+      HINDSIGHT_API_LLM_PROVIDER: ${HINDSIGHT_API_LLM_PROVIDER:-openai}
+      HINDSIGHT_API_LLM_MODEL: ${HINDSIGHT_API_LLM_MODEL:-gpt-5-nano}
+      HINDSIGHT_API_LLM_API_KEY: ${HINDSIGHT_API_LLM_API_KEY:-}
+      HINDSIGHT_API_LLM_BASE_URL: ${HINDSIGHT_API_LLM_BASE_URL:-}
+    volumes:
+      - ${HINDSIGHT_DATA_DIR:-/tmp/hindsight-data}:/home/hindsight/.pg0
+    restart: unless-stopped

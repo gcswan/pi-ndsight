@@ -15,7 +15,7 @@ const BASE_URL = process.env.HINDSIGHT_BASE_URL ?? "http://localhost:8888";
 const DEBUG = ["1", "true", "yes"].includes((process.env.HINDSIGHT_DEBUG ?? "").toLowerCase());
 
 export function debug(msg: string): void {
-  if (DEBUG) process.stderr.write(`[hindsight] ${msg}\n`);
+  if (DEBUG) process.stderr.write(`[pindsight] ${msg}\n`);
 }
 
 export interface RecallResult {
