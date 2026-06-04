@@ -50,6 +50,15 @@ export const CONFIG_DIR = path.join(os.homedir(), ".pi", "agent", "pindsight");
 export const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 const DEFAULT_DATA_DIR = path.join(os.homedir(), "hindsight-data");
 
+/**
+ * Pinned Hindsight server image. We pin (rather than track :latest) for
+ * reproducibility and data safety: every install of a given pi-ndsight version
+ * gets the exact server it was tested against, and server upgrades stay a
+ * deliberate, reviewable act. Override per-user with HINDSIGHT_IMAGE or the
+ * `image` field in config.json. Bump this constant to adopt a new release.
+ */
+export const DEFAULT_IMAGE = "ghcr.io/vectorize-io/hindsight:0.7.2";
+
 function readFileConfig(): Config {
   try {
     return JSON.parse(fs.readFileSync(CONFIG_PATH, "utf8")) as Config;
@@ -67,7 +76,7 @@ export function resolveConfig(): Config {
     model: file.model ?? env.HINDSIGHT_API_LLM_MODEL,
     apiKey: file.apiKey ?? env.HINDSIGHT_API_LLM_API_KEY,
     baseUrl: file.baseUrl ?? env.HINDSIGHT_API_LLM_BASE_URL,
-    image: file.image ?? env.HINDSIGHT_IMAGE ?? "ghcr.io/vectorize-io/hindsight:0.1.16",
+    image: file.image ?? env.HINDSIGHT_IMAGE ?? DEFAULT_IMAGE,
     dataDir: file.dataDir ?? env.HINDSIGHT_DATA_DIR ?? DEFAULT_DATA_DIR,
   };
 }
@@ -106,7 +115,7 @@ export function serverEnv(cfg: Config): NodeJS.ProcessEnv {
     HINDSIGHT_API_LLM_MODEL: cfg.model ?? "openai/gpt-oss-20b",
     HINDSIGHT_API_LLM_API_KEY: cfg.apiKey ?? "",
     HINDSIGHT_API_LLM_BASE_URL: cfg.baseUrl ?? "",
-    HINDSIGHT_IMAGE: cfg.image ?? "ghcr.io/vectorize-io/hindsight:0.1.16",
+    HINDSIGHT_IMAGE: cfg.image ?? DEFAULT_IMAGE,
     HINDSIGHT_DATA_DIR: cfg.dataDir ?? DEFAULT_DATA_DIR,
   };
 }

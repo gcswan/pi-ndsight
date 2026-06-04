@@ -72,6 +72,10 @@ async function startWithRun(cfg: Config, env: NodeJS.ProcessEnv): Promise<void> 
     "docker",
     [
       "run", "-d", "--name", CONTAINER,
+      // Embedded Postgres builds a to_tsvector GENERATED column during
+      // migrations, needing >500MB shared memory; Docker's default 64MB
+      // /dev/shm causes DiskFull crashes on first start/upgrade.
+      "--shm-size=2g",
       "-p", "8888:8888", "-p", "9999:9999",
       "--add-host", "host.docker.internal:host-gateway",
       "-e", `HINDSIGHT_API_LLM_PROVIDER=${env.HINDSIGHT_API_LLM_PROVIDER}`,

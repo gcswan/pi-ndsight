@@ -100,7 +100,7 @@ which the extension reads as a fallback:
 | `HINDSIGHT_API_LLM_GROQ_SERVICE_TIER` | (none) | Groq free tier: set to `on_demand` if you hit service_tier errors |
 | `HINDSIGHT_BANK_PREFIX` | `claude-code--` | Bank namespace. Default **shares banks with hindsight-cc**. Set to `pi--` to separate. |
 | `HINDSIGHT_BASE_URL` | `http://localhost:8888` | Hindsight server URL |
-| `HINDSIGHT_IMAGE` | `ghcr.io/vectorize-io/hindsight:0.1.16` | Docker image |
+| `HINDSIGHT_IMAGE` | `ghcr.io/vectorize-io/hindsight:0.7.2` | Docker image |
 | `HINDSIGHT_DATA_DIR` | `~/hindsight-data` | Memory data volume |
 | `HINDSIGHT_RECALL_TOKENS` | `2048` | Max tokens of injected memories |
 | `HINDSIGHT_RECALL_TIMEOUT_MS` | `2500` | Recall budget before proceeding without memories |

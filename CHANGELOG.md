@@ -16,6 +16,16 @@
 - Added a lightweight retention filter that drops trivial turns (bare commands,
   acknowledgements, clipboard paths, commit-hash-only replies).
 
+## 1.3.0
+
+- Pin the Hindsight server image to `0.7.2` (was `0.1.16`), via a single
+  `DEFAULT_IMAGE` constant in `config.ts`. Override with `HINDSIGHT_IMAGE`.
+- Give the server container `--shm-size=2g` (compose `shm_size: 2gb` and the
+  docker-run fallback). The embedded Postgres builds a `to_tsvector` GENERATED
+  column during migrations, which needs >500MB of shared memory; Docker's
+  default 64MB `/dev/shm` causes `DiskFull` crashes on first start and on
+  upgrades over a non-trivial data set.
+
 ## 1.2.1
 
 - Drop the misleading `Container:` line from `/pindsight-status`. It filtered on

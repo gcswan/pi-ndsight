@@ -10,8 +10,12 @@
 # container can be recreated without losing memories.
 services:
   pindsight:
-    image: ${HINDSIGHT_IMAGE:-ghcr.io/vectorize-io/hindsight:0.1.16}
+    image: ${HINDSIGHT_IMAGE:-ghcr.io/vectorize-io/hindsight:0.7.2}
     container_name: pindsight
+    # The embedded Postgres builds a to_tsvector GENERATED column during
+    # migrations, which needs >500MB of shared memory. Docker's default 64MB
+    # /dev/shm causes DiskFull crashes on first start / upgrade. Give it room.
+    shm_size: 2gb
     ports:
       - "8888:8888"
       - "9999:9999"
